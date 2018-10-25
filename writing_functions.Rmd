@@ -1,0 +1,95 @@
+---
+title: "Writing functions"
+output: github_document
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+
+library(tidyverse)
+
+theme_set(theme_bw() + theme(legend.position = "bottom"))
+```
+
+```{r}
+x = rnorm(25, mean = 5, sd = 3)
+
+(x - mean(x)) / sd(x)
+```
+
+
+```{r}
+z_scores = function(x) {
+  z = (x - mean(x)) / sd(x)
+  z
+}
+
+z_scores(x)
+```
+
+```{r error = TRUE}
+z_scores(3)
+z_scores("my name is jeff")
+z_scores(iris)
+z_scores(sample(c(TRUE, FALSE), 25, replace = TRUE))
+```
+
+Put in some checks on inputs
+
+```{r}
+z_scores_warning = function(x) {
+  if (!is.numeric(x)) {
+    stop("Argument x should be numeric")
+  } else if (length(x) == 1) {
+    stop("Z scores cannot be computed for length 1 vectors")
+  }
+  z = mean(x) / sd(x)
+  z
+}
+```
+
+### Mean and SD
+
+tibble
+
+```{r}
+mean_and_sd = function(x) {
+  
+  if (!is.numeric(x)) {
+    stop("Argument x should be numeric")
+  } else if (length(x) == 1) {
+    stop("Cannot be computed for length 1 vectors")
+  }
+  
+  tibble(
+  mean_x = mean(x),
+  sd_x = sd(x)
+  )
+}
+mean_and_sd(x)
+```
+
+list
+
+```{r}
+mean_and_sd = function(x) {
+  
+  if (!is.numeric(x)) {
+    stop("Argument x should be numeric")
+  } else if (length(x) == 1) {
+    stop("Cannot be computed for length 1 vectors")
+  }
+  
+  mean_x = mean(x)
+  sd_x = sd(x)
+
+  list(mean = mean_x, 
+       sd = sd_x)
+}
+```
+
