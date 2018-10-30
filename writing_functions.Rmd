@@ -13,6 +13,8 @@ knitr::opts_chunk$set(
 
 library(tidyverse)
 library(rvest)
+
+set.seed(1)
 theme_set(theme_bw() + theme(legend.position = "bottom"))
 ```
 
@@ -112,7 +114,7 @@ beta1_hat = coef(ls_fit)[2]
 change the sample size and regression parameters
 
 ```{r}
-sim_regression = function(n, beta0, beta1) {
+sim_regression = function(n, beta0 = 2, beta1 = 3) {
   
   sim_data = tibble(
     x = rnorm(n, mean = 1, sd = 1),
@@ -131,6 +133,8 @@ sim_regression = function(n, beta0, beta1) {
 ```{r}
 sim_regression(n = 3000, beta0 = 0, beta1 = -1)
 ```
+
+positional matching VS named matching
 
 
 ### Scraping Amazon
@@ -159,6 +163,7 @@ reviews = tibble(
 )
 ```
 
+
 ```{r}
 read_page_reviews <- function(url) {
   
@@ -185,7 +190,6 @@ read_page_reviews <- function(url) {
   )
 }
 ```
-
 
 ```{r}
 url_base = "https://www.amazon.com/product-reviews/B00005JNBQ/ref=cm_cr_arp_d_viewopt_rvwer?ie=UTF8&reviewerType=avp_only_reviews&sortBy=recent&pageNumber="
@@ -230,9 +234,7 @@ lotr_load_and_tidy = function(path, range, movie_name) {
     gather(key = sex, value = words, female:male) %>%
     mutate(race = tolower(race),
            movie = movie_name)
-  
   df
-  
 }
 
 lotr_tidy = 
@@ -259,7 +261,8 @@ my_summary(x, var)
 
 ```
 
-         
+### Scoping and names
+
 ```{r}
 f = function(x) {
   z = x + y

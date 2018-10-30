@@ -64,3 +64,180 @@ mean_and_sd = function(x) {
 }
 ```
 
+```{r}
+mean_and_sd(df[[1]])
+mean_and_sd(df[[2]])
+mean_and_sd(df[[3]])
+mean_and_sd(df[[4]])
+```
+
+### Write a for-loop
+
+i-placeholder
+
+```{r}
+output = vector("list", length = 4)
+
+for (i in 1:4) {
+  output[[i]] = mean_and_sd(df[[i]])
+}
+
+output
+```
+
+### map statement
+
+```{r}
+output = map(df, mean_and_sd)
+```
+
+
+### map variant
+```{r}
+output = map_df(df, mean_and_sd)
+
+output = map_dbl(df, median)
+
+output = map_dbl(df, median, .id = "input")
+```
+
+
+### code syntax
+
+be clear about argument!
+.x as a placeholder
+
+```{r}
+output = map(.x = df, ~ mean_and_sd(.x))
+
+output = map(.x = df, ~ mean(x = .x, na.rm = FALSE))
+```
+
+### Revisiting Napoleon
+
+```{r}
+library(rvest)
+
+read_page_reviews <- function(url) {
+  
+  h = read_html(url)
+  
+  title = h %>%
+    html_nodes("#cm_cr-review_list .review-title") %>%
+    html_text()
+  
+  stars = h %>%
+    html_nodes("#cm_cr-review_list .review-rating") %>%
+    html_text() %>%
+    str_extract("\\d") %>%
+    as.numeric()
+  
+  text = h %>%
+    html_nodes(".review-data:nth-child(4)") %>%
+    html_text()
+  
+  data_frame(title, stars, text)
+}
+```
+
+
+```{r}
+url_base = "https://www.amazon.com/product-reviews/B00005JNBQ/ref=cm_cr_arp_d_viewopt_rvwer?ie=UTF8&reviewerType=avp_only_reviews&sortBy=recent&pageNumber="
+vec_urls = str_c(url_base, 1:5)
+
+reviews = map(vec_urls, read_page_reviews)
+
+output = vector("list", 5)
+
+for (i in 1:5) {
+  output[[i]] = read_page_reviews(vec_urls[[i]])
+}
+
+dynamite_reviews = bind_rows(output)
+
+dynamite_reviews = map_df(vec_urls, read_page_reviews)
+```
+
+### NOAA
+
+```{r}
+library(rnoaa)
+
+weather = 
+  meteo_pull_monitors(c("USW00094728", "USC00519397", "USS0023B17S"),
+                      var = c("PRCP", "TMIN", "TMAX"), 
+                      date_min = "2016-01-01",
+                      date_max = "2016-12-31") %>%
+  mutate(
+    name = recode(id, USW00094728 = "CentralPark_NY", 
+                      USC00519397 = "Waikiki_HA",
+                      USS0023B17S = "Waterhole_WA"),
+    tmin = tmin / 10,
+    tmax = tmax / 10) %>%
+  select(name, id, everything())
+```
+
+```{r}
+#centralpark = weather %>% filter(...)
+
+weather_nest = 
+  weather %>% 
+  nest(date:tmin)
+
+weather %>% 
+  group_by(name, id) %>% 
+  nest()
+
+weather_nest %>% pull(name)
+weather_nest %>% pull(id)
+weather_nest %>% pull(data)
+```
+
+Unnesting
+
+```{r}
+unnest(weather_nest)
+```
+
+```{r}
+weather_nest$data[[3]] %>% 
+  skimr::skim()
+```
+
+
+
+```{r}
+lm(tmax ~ tmin, data = weather_nest$data[[1]])
+```
+
+Write a function
+
+```{r}
+weather_lm = function(df) {
+  lm(tmax ~ tmin, data = df)
+}
+
+weather_lm(weather_nest$data[[1]])
+
+weather_lm_1 = function(i) {
+  lm(tmax ~ tmin, data = weather_nest$data[[i]])
+}
+
+weather_lm_1(1)
+```
+
+```{r}
+map(weather_nest$data, weather_lm)
+
+#map_df not working here
+```
+
+Save output as a new list column
+
+```{r}
+weather_nest %>% 
+  mutate(lm_result = map(data, weather_lm))
+
+
+```
+
