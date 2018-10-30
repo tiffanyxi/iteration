@@ -12,7 +12,7 @@ knitr::opts_chunk$set(
 )
 
 library(tidyverse)
-
+library(rvest)
 theme_set(theme_bw() + theme(legend.position = "bottom"))
 ```
 
@@ -133,7 +133,142 @@ sim_regression(n = 3000, beta0 = 0, beta1 = -1)
 ```
 
 
+### Scraping Amazon
+
+```{r}
+url = "https://www.amazon.com/product-reviews/B00005JNBQ/ref=cm_cr_arp_d_viewopt_rvwer?ie=UTF8&reviewerType=avp_only_reviews&sortBy=recent&pageNumber=1"
+
+dynamite_html = read_html(url)
+
+review_titles = dynamite_html %>%
+  html_nodes("#cm_cr-review_list .review-title") %>%
+  html_text()
+
+review_stars = dynamite_html %>%
+  html_nodes("#cm_cr-review_list .review-rating") %>%
+  html_text()
+
+review_text = dynamite_html %>%
+    html_nodes(".review-data:nth-child(4)") %>%
+    html_text()
+
+reviews = tibble(
+  title = review_titles,
+  stars = review_stars,
+  text = review_text
+)
+```
+
+```{r}
+read_page_reviews <- function(url) {
+  
+  h = read_html(url)
+  
+  review_titles = h %>%
+    html_nodes("#cm_cr-review_list .review-title") %>%
+    html_text()
+  
+  review_stars = h %>%
+    html_nodes("#cm_cr-review_list .review-rating") %>%
+    html_text() %>%
+    str_extract("\\d") %>%
+    as.numeric()
+  
+  review_text = h %>%
+    html_nodes(".review-data:nth-child(4)") %>%
+    html_text()
+  
+  tibble(
+    title = review_titles,
+    stars = review_stars,
+    text = review_text
+  )
+}
+```
 
 
+```{r}
+url_base = "https://www.amazon.com/product-reviews/B00005JNBQ/ref=cm_cr_arp_d_viewopt_rvwer?ie=UTF8&reviewerType=avp_only_reviews&sortBy=recent&pageNumber="
+urls = str_c(url_base, 1:5)
 
+dynamite_reviews = bind_rows(
+  read_page_reviews(urls[1]),
+  read_page_reviews(urls[2]),
+  read_page_reviews(urls[3]),
+  read_page_reviews(urls[4]),
+  read_page_reviews(urls[5])
+)
+
+dynamite_reviews
+```
+
+### LoTR data
+
+```{r}
+fellowship_ring = readxl::read_excel("./data/LotR_Words.xlsx", range = "B3:D6") %>%
+  mutate(movie = "fellowship_ring")
+
+two_towers = readxl::read_excel("./data/LotR_Words.xlsx", range = "F3:H6") %>%
+  mutate(movie = "two_towers")
+
+return_king = readxl::read_excel("./data/LotR_Words.xlsx", range = "J3:L6") %>%
+  mutate(movie = "return_king")
+
+lotr_tidy = bind_rows(fellowship_ring, two_towers, return_king) %>%
+  janitor::clean_names() %>%
+  gather(key = sex, value = words, female:male) %>%
+  mutate(race = tolower(race)) %>% 
+  select(movie, everything()) 
+```
+
+
+```{r}
+lotr_load_and_tidy = function(path, range, movie_name) {
+  
+  df = readxl::read_excel(path, range = range) %>%
+    janitor::clean_names() %>%
+    gather(key = sex, value = words, female:male) %>%
+    mutate(race = tolower(race),
+           movie = movie_name)
+  
+  df
+  
+}
+
+lotr_tidy = 
+  bind_rows(
+    lotr_load_and_tidy("./data/LotR_Words.xlsx", "B3:D6", "fellowship_ring"),
+    lotr_load_and_tidy("./data/LotR_Words.xlsx", "F3:H6", "two_towers"),
+    lotr_load_and_tidy("./data/LotR_Words.xlsx", "J3:L6", "return_king")) %>%
+  select(movie, everything()) 
+```
+
+
+```{r}
+x = rnorm(25, 0, 1)
+
+my_summary = function(x, summ_func) {
+  summ_func(x)
+}
+
+my_summary(x, sd)
+
+my_summary(x, IQR)
+
+my_summary(x, var)
+
+```
+
+         
+```{r}
+f = function(x) {
+  z = x + y
+  z
+}
+
+x = 1
+y = 2
+
+f(x = y)
+```
 
