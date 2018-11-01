@@ -237,7 +237,5 @@ Save output as a new list column
 ```{r}
 weather_nest %>% 
   mutate(lm_result = map(data, weather_lm))
-
-
 ```
 
