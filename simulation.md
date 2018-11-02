@@ -1,22 +1,7 @@
----
-title: "Writing functions"
-output: github_document
----
+Writing functions
+================
 
-```{r, include = FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  fig.width = 6,
-  fig.asp = .6,
-  out.width = "90%"
-)
-
-library(tidyverse)
-
-set.seed(1)
-```
-
-```{r}
+``` r
 sim_regression = function(n, beta0 = 2, beta1 = 3) {
   
   sim_data = tibble(
@@ -33,8 +18,7 @@ sim_regression = function(n, beta0 = 2, beta1 = 3) {
 }
 ```
 
-
-```{r}
+``` r
 output = vector("list", 100)
 
 for (i in 1:100) {
@@ -44,20 +28,16 @@ for (i in 1:100) {
 sim_results = bind_rows(output)
 ```
 
-```{r}
+``` r
 sim_results = 
   rerun(1000, sim_regression(30, 2, 3)) %>% 
   bind_rows()
 ```
 
-```{r}
+``` r
 sim_results %>% 
   ggplot(aes(x = beta0_hat, y = beta1_hat)) + 
   geom_point()
 ```
 
-
-```{r}
-
-```
-
+<img src="simulation_files/figure-markdown_github/unnamed-chunk-5-1.png" width="90%" />
