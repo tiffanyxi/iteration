@@ -1,14 +1,21 @@
 ---
-title: "Iteration and list column"
+title: "Iteration and listcolumn"
 output: github_document
 ---
 
 ```{r, include = FALSE}
-knitr::opts_chunk$set(collapse = TRUE)
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
 library(tidyverse)
-
+library(rvest)
 set.seed(1)
 ```
+
+## lists
 
 ```{r}
 vec_numeric = 5:8
@@ -42,8 +49,12 @@ df = data_frame(
 )
 
 is.list(df)
+#data frames are actually a very specific kind of list
+
 df[[2]]
 ```
+
+Let's get a function.
 
 ```{r}
 mean_and_sd = function(x) {
@@ -64,6 +75,8 @@ mean_and_sd = function(x) {
 }
 ```
 
+We can apply the function to `df`.
+
 ```{r}
 mean_and_sd(df[[1]])
 mean_and_sd(df[[2]])
@@ -74,10 +87,15 @@ mean_and_sd(df[[4]])
 ### Write a for-loop
 
 i-placeholder
-
 ```{r}
 output = vector("list", length = 4)
 
+output[[1]] = mean_and_sd(df[[1]])
+output[[2]] = mean_and_sd(df[[2]])
+output[[3]] = mean_and_sd(df[[3]])
+output[[4]] = mean_and_sd(df[[4]])
+
+#simpler
 for (i in 1:4) {
   output[[i]] = mean_and_sd(df[[i]])
 }
@@ -87,24 +105,46 @@ output
 
 ### map statement
 
+let's replace the `for` loop with `map`
+
 ```{r}
 output = map(df, mean_and_sd)
+
+output$a
+
+df %>% 
+  select(a, b, c) %>% 
+  map(mean_and_sd)
 ```
 
+Let's try a different function
+
+```{r}
+output = map(df, summary)
+```
 
 ### map variant
+
 ```{r}
 output = map_df(df, mean_and_sd)
 
-output = map_dbl(df, median)
+map_dbl(df, median)
+map_dfr(df, mean_and_sd, .id = "input")
 
 output = map_dbl(df, median, .id = "input")
+
+#map2(.x = input_1, .y = input_2, ~func(arg_1 = .x, arg_2 = .y))
+
 ```
+
+lotr_data = map2_df(
+  .x = cell_ranges, .y = movie_names, 
+  ~lotr_load_and_tidy(path = "./data/LotR_Words.xlsx", range = .x, movie_name = .y))
 
 
 ### code syntax
 
-be clear about argument!
+be more specific in giving arguments to map
 .x as a placeholder
 
 ```{r}
@@ -158,7 +198,7 @@ dynamite_reviews = bind_rows(output)
 dynamite_reviews = map_df(vec_urls, read_page_reviews)
 ```
 
-### NOAA
+## List columns ...
 
 ```{r}
 library(rnoaa)
@@ -177,6 +217,7 @@ weather =
   select(name, id, everything())
 ```
 
+
 ```{r}
 #centralpark = weather %>% filter(...)
 
@@ -184,6 +225,7 @@ weather_nest =
   weather %>% 
   nest(date:tmin)
 
+#Alternative
 weather %>% 
   group_by(name, id) %>% 
   nest()
@@ -193,21 +235,29 @@ weather_nest %>% pull(id)
 weather_nest %>% pull(data)
 ```
 
-Unnesting
+Unnesting...
 
 ```{r}
-unnest(weather_nest)
+weather_nest %>% 
+  unnest()
 ```
 
+look at LC elements
+
 ```{r}
+weather_nest$data[[1]] %>% 
+  filter(prcp == 0)
+
 weather_nest$data[[3]] %>% 
   skimr::skim()
 ```
 
-
+Fit a location-specific regression ...
 
 ```{r}
 lm(tmax ~ tmin, data = weather_nest$data[[1]])
+lm(tmax ~ tmin, data = weather_nest$data[[2]])
+lm(tmax ~ tmin, data = weather_nest$data[[3]])
 ```
 
 Write a function
@@ -224,18 +274,57 @@ weather_lm_1 = function(i) {
 }
 
 weather_lm_1(1)
+
+#avoid the creation of a dedicated function 
+map(weather_nest$data, ~lm(tmax ~ tmin, data = .x))
 ```
+
+group_by + summerize doesn't work here(only works when outcome is a single number--mean/median)
 
 ```{r}
 map(weather_nest$data, weather_lm)
 
-#map_df not working here
+#map_df not working here--output of lm is not a dataframe
 ```
 
 Save output as a new list column
 
+keep track of separate linear regression model of independent object
+
 ```{r}
-weather_nest %>% 
+lm_op = weather_nest %>% 
   mutate(lm_result = map(data, weather_lm))
+
+lm_op$lm_result[[1]]
+
 ```
 
+## A couple final examples
+
+```{r, eval = FALSE}
+url_base = "https://www.amazon.com/product-reviews/B00005JNBQ/ref=cm_cr_arp_d_viewopt_rvwer?ie=UTF8&reviewerType=avp_only_reviews&sortBy=recent&pageNumber="
+reviews = tibble(
+  page = 1:5,
+  url = str_c(url_base, page)
+) %>% 
+  mutate(reviews = map(url, read_page_reviews)) %>% 
+  unnest()
+```
+
+```{r}
+lotr_cell_ranges = 
+  tibble(
+    movie = c("fellowship_ring", "two_towers", "return_king"),
+    cells = c("B3:D6", "F3:H6", "J3:L6")
+  )
+lotr_tidy = 
+  lotr_cell_ranges %>% 
+  mutate(
+    word_data = map(cells, ~readxl::read_excel("./data/LotR_Words.xlsx", range = .x))
+  ) %>% 
+  unnest() %>% 
+  janitor::clean_names() %>% 
+  gather(key = sex, value = words, female:male) %>%
+  mutate(race = tolower(race)) %>% 
+  select(movie, everything(), -cells) 
+```
